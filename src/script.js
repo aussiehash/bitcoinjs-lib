@@ -1,5 +1,6 @@
 (function () {
   var Opcode = Bitcoin.Opcode;
+  var ECDSA = Bitcoin.ECDSA;
 
   // Make opcodes available as pseudo-constants
   for (var i in Opcode.map) {
@@ -90,7 +91,7 @@
    * Pubkey:
    *   Paying to a public key directly.
    *   [pubKey] OP_CHECKSIG
-   * 
+   *
    * Strange:
    *   Any other script (no template matched).
    */
@@ -112,7 +113,7 @@
     return 'Pubkey';
   } else {
     return 'Strange';
-  }   
+  }
 }
 
   /**
@@ -123,7 +124,7 @@
    *
    * In the future, for payToScriptHash outputs, this will return the
    * scriptHash. Note that non-standard and standard payToScriptHash transactions
-   * look the same 
+   * look the same
    *
    * This method is useful for indexing transactions.
    */
@@ -164,7 +165,7 @@
    * Pubkey:
    *   Paying to a public key directly.
    *   [sig]
-   * 
+   *
    * Strange:
    *   Any other script (no template matched).
    */
@@ -209,6 +210,39 @@
     default:
       throw new Error("Encountered non-standard scriptSig");
     }
+  };
+
+  /**
+   * Tries to recover public keys used to sign a transaction hash.
+   */
+  Script.prototype.recoverInPubKeys = function (hash)
+  {
+    var rs = Bitcoin.ECDSA.parseSig(this.chunks[0]),
+        keys = [],
+        i;
+
+    for (i = 0; i < 4; i++) {
+      try {
+        keys.push(Bitcoin.ECDSA.recoverPubKey(rs.r, rs.s, hash, i));
+      } catch (e) {
+        // ignore this key
+      }
+    }
+
+    return keys;
+  };
+
+  Script.prototype.recoverInPubKeyHashes = function (hash)
+  {
+    var keys = this.recoverInPubKeys(hash)
+        hashes = []
+        i;
+
+    for (i = 0; i < keys.length; i++) {
+      hashes.push(Bitcoin.Util.sha256ripe160(keys[i]));
+    }
+
+    return hashes;
   };
 
   /**
@@ -285,13 +319,13 @@
     script.writeOp(OP_CHECKSIG);
     return script;
   };
-  
-  
+
+
   /**
    * Extract bitcoin addresses from an output script
    */
   Script.prototype.extractAddresses = function (addresses)
-  { 
+  {
     switch (this.getOutType()) {
     case 'Address':
       addresses.push(new Address(this.chunks[2]));
@@ -315,13 +349,13 @@
   Script.createMultiSigOutputScript = function (m, pubkeys)
   {
     var script = new Bitcoin.Script();
-    
+
     script.writeOp(OP_1 + m - 1);
-    
+
     for (var i = 0; i < pubkeys.length; ++i) {
       script.writeBytes(pubkeys[i]);
     }
-    
+
     script.writeOp(OP_1 + pubkeys.length - 1);
 
     script.writeOp(OP_CHECKMULTISIG);
