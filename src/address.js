@@ -3,8 +3,7 @@ Bitcoin.Address = function (bytes) {
     bytes = Bitcoin.Address.decodeString(bytes);
   }
   this.hash = bytes;
-
-  this.version = 0x00;
+  this.version = 111; // TODO: explicit version number
 };
 
 /**
