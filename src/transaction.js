@@ -221,9 +221,9 @@
    * Returns an object with properties 'impact', 'type' and 'addr'.
    *
    * 'impact' is an object, see Transaction#calcImpact.
-   * 
+   *
    * 'type' can be one of the following:
-   * 
+   *
    * recv:
    *   This is an incoming transaction, the wallet received money.
    *   'addr' contains the first address in the wallet that receives money
@@ -261,10 +261,28 @@
     }
     for (var i = this.ins.length-1; i >= 0; i--) {
       var txin = this.ins[i];
-      firstSendHash = txin.script.simpleInPubKeyHash();
-      if (!wallet.hasHash(firstSendHash)) {
-        allFromMe = false;
-        break;
+      try {
+        firstSendHash = txin.script.simpleInPubKeyHash();
+      } catch (e) {
+        firstSendHash = null;
+      }
+      if (firstSendHash) {
+        if (!wallet.hasHash(firstSendHash)) {
+          allFromMe = false;
+          break;
+        }
+      } else {
+        var hashes = txin.script.recoverInPubKeyHashes(this.hash),
+            allMissing = true;
+        for (var j = 0; j < hashes.length; j++) {
+          if (wallet.hasHash(hashes[j])) {
+            allMissing = false;
+            break;
+          }
+        }
+        if (allMissing) {
+          allFromMe = false;
+        }
       }
     }
 
@@ -370,7 +388,18 @@
     var valueIn = BigInteger.ZERO;
     for (var j = 0; j < this.ins.length; j++) {
       var txin = this.ins[j];
-      var hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
+      var hash;
+      try {
+        hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
+      } catch (e) {
+        var hashes = txin.script.recoverInPubKeyHashes(this.hash);
+        for (var k = 0; k < hashes.length; k++) {
+          if (wallet.hasHash(hashes[k])) {
+            hash = hashes[k];
+            break;
+          }
+        }
+      }
       if (wallet.hasHash(hash)) {
         var fromTx = wallet.txIndex[txin.outpoint.hash];
         if (fromTx) {
