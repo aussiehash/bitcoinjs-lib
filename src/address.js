@@ -1,9 +1,9 @@
-Bitcoin.Address = function (bytes) {
+Bitcoin.Address = function (bytes, version) {
   if ("string" == typeof bytes) {
     bytes = Bitcoin.Address.decodeString(bytes);
   }
   this.hash = bytes;
-  this.version = 111; // TODO: explicit version number
+  this.version = version || 0;
 };
 
 /**

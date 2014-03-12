@@ -3,7 +3,7 @@ Bitcoin.Wallet = (function () {
   TransactionIn = Bitcoin.TransactionIn,
   TransactionOut = Bitcoin.TransactionOut;
 
-  var Wallet = function () {
+  var Wallet = function (addressVersion) {
     // Keychain
     //
     // The keychain is stored as a var in this closure to make accidental
@@ -22,6 +22,7 @@ Bitcoin.Wallet = (function () {
 
     // Other fields
     this.addressPointer = 0;
+    this.addressVersion = addressVersion || 0;
 
     /**
      * Add a key to the keychain.
@@ -43,7 +44,7 @@ Bitcoin.Wallet = (function () {
         key.setPub(pub);
       }
 
-      this.addressHashes.push(key.getBitcoinAddress().getHashBase64());
+      this.addressHashes.push(key.getBitcoinAddress(this.addressVersion).getHashBase64());
     };
 
     /**
@@ -120,14 +121,14 @@ Bitcoin.Wallet = (function () {
     this.getAllAddresses = function () {
       var addresses = [];
       for (var i = 0; i < keys.length; i++) {
-        addresses.push(keys[i].getBitcoinAddress());
+        addresses.push(keys[i].getBitcoinAddress(this.addressVersion));
       }
       return addresses;
     };
 
     this.getCurAddress = function () {
       if (keys[this.addressPointer]) {
-        return keys[this.addressPointer].getBitcoinAddress();
+        return keys[this.addressPointer].getBitcoinAddress(this.addressVersion);
       } else {
         return null;
       }
@@ -144,7 +145,7 @@ Bitcoin.Wallet = (function () {
       if (!keys[this.addressPointer]) {
         this.generateAddress();
       }
-      return keys[this.addressPointer].getBitcoinAddress();
+      return keys[this.addressPointer].getBitcoinAddress(this.addressVersion);
     };
 
     /**
