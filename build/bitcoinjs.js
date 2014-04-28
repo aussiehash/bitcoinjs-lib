@@ -4077,6 +4077,8 @@ Bitcoin.ECKey = (function () {
     this.block = null;
 
     if (doc) {
+      if (typeof doc === 'string' || Array.isArray(doc))
+        doc = Transaction.deserialize(doc);
       if (doc.hash) this.hash = doc.hash;
       if (doc.version) this.version = doc.version;
       if (doc.lock_time) this.lock_time = doc.lock_time;
@@ -4192,6 +4194,84 @@ Bitcoin.ECKey = (function () {
     buffer = buffer.concat(Crypto.util.wordsToBytes([parseInt(this.lock_time)]).reverse());
 
     return buffer;
+  };
+
+  Transaction.deserialize = function(buffer) {
+    var pos = 0,
+        obj = { ins: [], outs: [] },
+        insCount, outsCount, i;
+
+    if (typeof buffer === 'string')
+        buffer = Crypto.util.hexToBytes(buffer);
+
+    obj.version = readAsInt(4);
+
+    insCount = readVarInt();
+    for (i = 0; i < insCount; i++) {
+      obj.ins.push({
+        outpoint: {
+          hash: Crypto.util.bytesToHex(readBytes(32).reverse()),
+          index: readAsInt(4)
+        },
+        script: new Script(readVarString()),
+        sequence: readBytes(4)
+      });
+    }
+
+    outsCount = readVarInt();
+    for (i = 0; i < outsCount; i++) {
+      obj.outs.push({
+        value: bytesToNum(readBytes(8)).toString(),
+        script: new Script(readVarString())
+      });
+    }
+
+    obj.locktime = readAsInt(4);
+    return new Transaction(obj);
+
+    function readAsInt(bytes) {
+      if (bytes === 0) return 0;
+      pos++;
+      return buffer[pos-1] + readAsInt(bytes-1) * 256;
+    }
+
+    function readVarInt() {
+      var bytes = buffer.slice(pos, pos + 9); // maximum possible number of bytes to read
+      var result = varIntToNum(bytes);
+
+      pos += result.bytes.length;
+      return result.number;
+    }
+
+    function readBytes(bytes) {
+      pos += bytes;
+      return buffer.slice(pos - bytes, pos);
+    }
+
+    function readVarString() {
+      var size = readVarInt();
+      return readBytes(size);
+    }
+
+    function bytesToNum(bytes) {
+      if (bytes.length === 0) return 0;
+      return bytes[0] + 256 * bytesToNum(bytes.slice(1));
+    }
+
+    function varIntToNum(bytes) {
+      var prefix = bytes[0];
+
+      var viBytes =
+          prefix < 253   ? bytes.slice(0, 1)
+        : prefix === 253 ? bytes.slice(1, 3)
+        : prefix === 254 ? bytes.slice(1, 5)
+        : bytes.slice(1, 9);
+
+      return {
+        bytes: prefix < 253 ? viBytes : bytes.slice(0, viBytes.length + 1),
+        number: bytesToNum(viBytes)
+      };
+    }
   };
 
   var OP_CODESEPARATOR = 171;
