@@ -4408,6 +4408,9 @@ Bitcoin.ECKey = (function () {
     }
     for (var i = this.ins.length-1; i >= 0; i--) {
       var txin = this.ins[i];
+      if (txin.isCoinbase()) {
+        continue;
+      }
       try {
         firstSendHash = txin.script.simpleInPubKeyHash();
       } catch (e) {
@@ -4535,6 +4538,9 @@ Bitcoin.ECKey = (function () {
     var valueIn = BigInteger.ZERO;
     for (var j = 0; j < this.ins.length; j++) {
       var txin = this.ins[j];
+      if (txin.isCoinbase()) {
+        continue;
+      }
       var hash;
       try {
         hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
@@ -4578,6 +4584,14 @@ Bitcoin.ECKey = (function () {
     this.sequence = data.sequence;
   };
 
+  TransactionIn.prototype.isCoinbase = function ()
+  {
+    return (
+      this.outpoint.hash.match(/0+/) &&
+      this.outpoint.index === -1
+    );
+  };
+
   TransactionIn.prototype.clone = function ()
   {
     var newTxin = new TransactionIn({
@@ -4617,8 +4631,6 @@ Bitcoin.ECKey = (function () {
     return newTxout;
   };
 })();
-
-
 
 Bitcoin.Wallet = (function () {
   var Script = Bitcoin.Script,

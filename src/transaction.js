@@ -341,6 +341,9 @@
     }
     for (var i = this.ins.length-1; i >= 0; i--) {
       var txin = this.ins[i];
+      if (txin.isCoinbase()) {
+        continue;
+      }
       try {
         firstSendHash = txin.script.simpleInPubKeyHash();
       } catch (e) {
@@ -468,6 +471,9 @@
     var valueIn = BigInteger.ZERO;
     for (var j = 0; j < this.ins.length; j++) {
       var txin = this.ins[j];
+      if (txin.isCoinbase()) {
+        continue;
+      }
       var hash;
       try {
         hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
@@ -511,6 +517,14 @@
     this.sequence = data.sequence;
   };
 
+  TransactionIn.prototype.isCoinbase = function ()
+  {
+    return (
+      this.outpoint.hash.match(/0+/) &&
+      this.outpoint.index === -1
+    );
+  };
+
   TransactionIn.prototype.clone = function ()
   {
     var newTxin = new TransactionIn({
@@ -550,5 +564,3 @@
     return newTxout;
   };
 })();
-
-
