@@ -347,6 +347,7 @@
       try {
         firstSendHash = txin.script.simpleInPubKeyHash();
       } catch (e) {
+        console.error('Failed to compute simpleInPubKeyHash:', e);
         firstSendHash = null;
       }
       if (firstSendHash) {
@@ -478,6 +479,7 @@
       try {
         hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
       } catch (e) {
+        console.error('Failed to compute simpleInPubKeyHash:', e);
         var hashes = txin.script.recoverInPubKeyHashes(this.hash);
         for (var k = 0; k < hashes.length; k++) {
           if (wallet.hasHash(hashes[k])) {

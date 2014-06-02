@@ -95,26 +95,91 @@
    * Strange:
    *   Any other script (no template matched).
    */
-  Script.prototype.getOutType = function () {
+//   Script.prototype.getOutType = function () {
 
-  if (this.chunks[this.chunks.length-1] == OP_CHECKMULTISIG && this.chunks[this.chunks.length-2] <= 3) {
-    // Transfer to M-OF-N
-    return 'Multisig';
-  } else if (this.chunks.length == 5 &&
-    this.chunks[0] == OP_DUP &&
-    this.chunks[1] == OP_HASH160 &&
-    this.chunks[3] == OP_EQUALVERIFY &&
-    this.chunks[4] == OP_CHECKSIG) {
-    // Transfer to Bitcoin address
-    return 'Address';
-  } else if (this.chunks.length == 2 &&
-         this.chunks[1] == OP_CHECKSIG) {
-    // Transfer to IP address
-    return 'Pubkey';
-  } else {
-    return 'Strange';
+//   if (this.chunks[this.chunks.length-1] == OP_CHECKMULTISIG && this.chunks[this.chunks.length-2] <= 3) {
+//     // Transfer to M-OF-N
+//     return 'Multisig';
+//   } else if (this.chunks.length == 5 &&
+//     this.chunks[0] == OP_DUP &&
+//     this.chunks[1] == OP_HASH160 &&
+//     this.chunks[3] == OP_EQUALVERIFY &&
+//     this.chunks[4] == OP_CHECKSIG) {
+//     // Transfer to Bitcoin address
+//     return 'Address';
+//   } else if (this.chunks.length == 2 &&
+//          this.chunks[1] == OP_CHECKSIG) {
+//     // Transfer to IP address
+//     return 'Pubkey';
+//   } else {
+//     return 'Strange';
+//   }
+// }
+
+  Script.prototype.getOutType = function() {
+    if (isPubkeyhash.call(this)) {
+      return 'Address';
+    } else if (isPubkey.call(this)) {
+      return 'Pubkey';
+    } else if (isScripthash.call(this)) {
+      return 'Scripthash';
+    } else if (isMultisig.call(this)) {
+      return 'Multisig';
+    } else if (isNulldata.call(this)) {
+      return 'Nulldata';
+    } else {
+      return 'Strange';
+    }
+  };
+
+  function isPubkeyhash() {
+    return this.chunks.length == 5 &&
+      this.chunks[0] == OP_DUP &&
+      this.chunks[1] == OP_HASH160 &&
+      Array.isArray(this.chunks[2]) &&
+      this.chunks[2].length === 20 &&
+      this.chunks[3] == OP_EQUALVERIFY &&
+      this.chunks[4] == OP_CHECKSIG;
   }
-}
+
+  function isPubkey() {
+    return this.chunks.length === 2 &&
+      Array.isArray(this.chunks[0]) &&
+      this.chunks[1] === OP_CHECKSIG;
+  }
+
+  function isScripthash() {
+    return this.chunks[this.chunks.length - 1] == OP_EQUAL &&
+      this.chunks[0] == OP_HASH160 &&
+      Array.isArray(this.chunks[1]) &&
+      this.chunks[1].length === 20 &&
+      this.chunks.length == 3;
+  }
+
+  function isMultisig() {
+    return this.chunks.length > 3 &&
+      // m is a smallint
+      isSmallIntOp(this.chunks[0]) &&
+      // n is a smallint
+      isSmallIntOp(this.chunks[this.chunks.length - 2]) &&
+      // n greater or equal to m
+      this.chunks[0] <= this.chunks[this.chunks.length - 2] &&
+      // n cannot be 0
+      this.chunks[this.chunks.length - 2] !== OP_0 &&
+      // n is the size of chunk length minus 3 (m, n, OP_CHECKMULTISIG)
+      this.chunks.length - 3 === this.chunks[this.chunks.length - 2] - OP_RESERVED &&
+      // last chunk is OP_CHECKMULTISIG
+      this.chunks[this.chunks.length - 1] == OP_CHECKMULTISIG;
+  }
+
+  function isNulldata() {
+    return this.chunks[0] === OP_RETURN;
+  }
+
+  function isSmallIntOp(opcode) {
+    return ((opcode == OP_0) ||
+            ((opcode >= OP_1) && (opcode <= OP_16)));
+  }
 
   /**
    * Returns the affected address hash for this output.
@@ -133,6 +198,8 @@
     switch (this.getOutType()) {
     case 'Address':
       return this.chunks[2];
+    case 'Scripthash':
+      return this.chunks[1];
     case 'Pubkey':
       return Bitcoin.Util.sha256ripe160(this.chunks[0]);
     default:
@@ -171,6 +238,8 @@
    */
   Script.prototype.getInType = function ()
   {
+    var chunks = this.chunks;
+
     if (this.chunks.length == 1 &&
         Bitcoin.Util.isArray(this.chunks[0])) {
       // Direct IP to IP transactions only have the signature in their scriptSig.
@@ -180,8 +249,16 @@
                Bitcoin.Util.isArray(this.chunks[0]) &&
                Bitcoin.Util.isArray(this.chunks[1])) {
       return 'Address';
+    } else if (this.chunks[0] == OP_0 &&
+               this.chunks.slice(1).reduce(msReduce, true)) {
+      return 'Multisig';
     } else {
       return 'Strange';
+    }
+
+    function msReduce(t, chunk, i) {
+      return t && Array.isArray(chunk)
+        && (chunk[0] === 48 || i === chunks.length - 2);
     }
   };
 
@@ -234,6 +311,14 @@
 
   Script.prototype.recoverInPubKeyHashes = function (hash)
   {
+    var chunks = this.chunks;
+
+    if (this.getInType() === 'Multisig')
+      return this.chunks.slice(1).filter(function (chunk, i) {
+        return Array.isArray(chunk)
+          && (chunk[0] == 48 || i == chunks.length - 2);
+      });
+
     var keys = this.recoverInPubKeys(hash)
         hashes = []
         i;
