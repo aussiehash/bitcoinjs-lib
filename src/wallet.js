@@ -15,6 +15,7 @@ Bitcoin.Wallet = (function () {
 
     // Public hashes of our keys
     this.addressHashes = [];
+    this.internalAddressHashes = [];
 
     // Transaction data
     this.txIndex = {};
@@ -45,7 +46,7 @@ Bitcoin.Wallet = (function () {
         key.setPub(pub);
       }
 
-      this.addressHashes.push(key.getBitcoinAddress(this.addressVersion).getHashBase64());
+     this.addressHashes.push(key.getBitcoinAddress(this.addressVersion).getHashBase64());
     };
 
     /**
@@ -298,9 +299,17 @@ Bitcoin.Wallet = (function () {
   Wallet.prototype.hasHash = function (hash) {
     if (Bitcoin.Util.isArray(hash)) hash = Crypto.util.bytesToBase64(hash);
 
-    // TODO: Just create an object with  base64 hashes as keys for faster lookup
     for (var k = 0; k < this.addressHashes.length; k++) {
       if (this.addressHashes[k] === hash) return true;
+    }
+    return false;
+  };
+
+  Wallet.prototype.hasInternalHash = function (hash) {
+    if (Bitcoin.Util.isArray(hash)) hash = Crypto.util.bytesToBase64(hash);
+
+    for (var k = 0; k < this.internalAddressHashes.length; k++) {
+      if (this.internalAddressHashes[k] === hash) return true;
     }
     return false;
   };
