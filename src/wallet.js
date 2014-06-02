@@ -3,7 +3,7 @@ Bitcoin.Wallet = (function () {
   TransactionIn = Bitcoin.TransactionIn,
   TransactionOut = Bitcoin.TransactionOut;
 
-  var Wallet = function (addressVersion) {
+  var Wallet = function (addressVersion, scriptHashVersion) {
     // Keychain
     //
     // The keychain is stored as a var in this closure to make accidental
@@ -22,7 +22,8 @@ Bitcoin.Wallet = (function () {
 
     // Other fields
     this.addressPointer = 0;
-    this.addressVersion = addressVersion || 0;
+    this.addressVersion = addressVersion || 0x00;
+    this.scriptHashVersion = scriptHashVersion || 0x05;
 
     /**
      * Add a key to the keychain.
@@ -306,4 +307,3 @@ Bitcoin.Wallet = (function () {
 
   return Wallet;
 })();
-
