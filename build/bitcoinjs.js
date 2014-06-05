@@ -4630,7 +4630,7 @@ Bitcoin.ECKey = (function () {
       if (txin.isCoinbase()) {
         continue;
       }
-      var hash;
+      var hash = null;
       try {
         hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
       } catch (e) {
@@ -4643,7 +4643,7 @@ Bitcoin.ECKey = (function () {
           }
         }
       }
-      if (wallet.hasHash(hash)) {
+      if (hash && wallet.hasHash(hash)) {
         var fromTx = wallet.txIndex[txin.outpoint.hash];
         if (fromTx) {
           valueIn = valueIn.add(Bitcoin.Util.valueToBigInt(fromTx.outs[txin.outpoint.index].value));
