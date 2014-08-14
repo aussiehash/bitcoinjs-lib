@@ -332,7 +332,13 @@
 
     for (var i = this.outs.length-1; i >= 0; i--) {
       var txout = this.outs[i];
-      var hash = txout.script.simpleOutPubKeyHash();
+      var hash = null;
+      try {
+        hash = txout.script.simpleOutPubKeyHash();
+      } catch (e) {
+        console.error('Failed to compute simpleOutPubKeyHash:', e);
+        continue;
+      }
       if (!wallet.hasHash(hash)) {
         allToMe = false;
       } else {
@@ -465,7 +471,13 @@
     var valueOut = BigInteger.ZERO;
     for (var j = 0; j < this.outs.length; j++) {
       var txout = this.outs[j];
-      var hash = Crypto.util.bytesToBase64(txout.script.simpleOutPubKeyHash());
+      var hash = null;
+      try {
+        hash = Crypto.util.bytesToBase64(txout.script.simpleOutPubKeyHash());
+      } catch (e) {
+        console.error('Failed to compute simpleOutPubKeyHash:', e);
+        continue;
+      }
       if (wallet.hasHash(hash)) {
         valueOut = valueOut.add(Bitcoin.Util.valueToBigInt(txout.value));
       }
