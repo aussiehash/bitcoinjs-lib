@@ -4500,6 +4500,8 @@ Bitcoin.ECKey = (function () {
         firstRecvHash = hash;
         if (txout.script.getOutType() === 'Scripthash') {
           recvHashVersion = wallet.scriptHashVersion;
+        } else {
+          recvHashVersion = wallet.addressVersion;
         }
       }
     }
