@@ -4476,11 +4476,12 @@ Bitcoin.ECKey = (function () {
     if (!(wallet instanceof Bitcoin.Wallet)) return null;
 
     var allFromMe = true,
-    allToMe = true,
-    firstRecvHash = null,
-    firstMeRecvHash = null,
-    firstSendHash = null,
-    recvHashVersion = wallet.addressVersion;
+        allToMe = true,
+        firstRecvHash = null,
+        firstMeRecvHash = null,
+        firstSendHash = null,
+        recvHashVersion,
+        meRecvHashVersion;
 
     for (var i = this.outs.length-1; i >= 0; i--) {
       var txout = this.outs[i];
@@ -4491,12 +4492,15 @@ Bitcoin.ECKey = (function () {
         console.error('Failed to compute simpleOutPubKeyHash:', e);
         continue;
       }
-      if (!wallet.hasHash(hash)) {
-        allToMe = false;
-      } else {
+      if (wallet.hasHash(hash) && !wallet.hasInternalHash(hash)) {
         firstMeRecvHash = hash;
-      }
-      if (!wallet.hasInternalHash(hash)) {
+        if (txout.script.getOutType() === 'Scripthash') {
+          meRecvHashVersion = wallet.scriptHashVersion;
+        } else {
+          meRecvHashVersion = wallet.addressVersion;
+        }
+      } else {
+        allToMe = false;
         firstRecvHash = hash;
         if (txout.script.getOutType() === 'Scripthash') {
           recvHashVersion = wallet.scriptHashVersion;
@@ -4544,7 +4548,7 @@ Bitcoin.ECKey = (function () {
 
     if (impact.sign > 0 && impact.value.compareTo(BigInteger.ZERO) > 0) {
       analysis.type = 'recv';
-      analysis.addr = new Bitcoin.Address(firstMeRecvHash, recvHashVersion);
+      analysis.addr = new Bitcoin.Address(firstMeRecvHash, meRecvHashVersion);
     } else if (allFromMe && allToMe) {
       analysis.type = 'self';
     } else if (allFromMe) {
