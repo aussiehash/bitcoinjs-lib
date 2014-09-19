@@ -2869,6 +2869,7 @@ Bitcoin.Address = function (bytes, version) {
   }
   this.hash = bytes;
   this.version = version || 0;
+  this.address = null;
 };
 
 /**
@@ -2877,6 +2878,12 @@ Bitcoin.Address = function (bytes, version) {
  * Returns the address as a base58-encoded string in the standardized format.
  */
 Bitcoin.Address.prototype.toString = function () {
+  return (
+    (this.address) || (this.address = this._toString())
+  );
+};
+
+Bitcoin.Address.prototype._toString = function () {
   // Get a copy of the hash
   var hash = this.hash.slice(0);
 
@@ -4492,7 +4499,10 @@ Bitcoin.ECKey = (function () {
         console.error('Failed to compute simpleOutPubKeyHash:', e);
         continue;
       }
-      if (wallet.hasHash(hash) && !wallet.hasInternalHash(hash)) {
+      if (wallet.hasInternalHash(hash)) {
+        continue;
+      }
+      if (wallet.hasHash(hash)) {
         firstMeRecvHash = hash;
         if (txout.script.getOutType() === 'Scripthash') {
           meRecvHashVersion = wallet.scriptHashVersion;
