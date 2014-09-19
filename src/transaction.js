@@ -340,7 +340,10 @@
         console.error('Failed to compute simpleOutPubKeyHash:', e);
         continue;
       }
-      if (wallet.hasHash(hash) && !wallet.hasInternalHash(hash)) {
+      if (wallet.hasInternalHash(hash)) {
+        continue;
+      }
+      if (wallet.hasHash(hash)) {
         firstMeRecvHash = hash;
         if (txout.script.getOutType() === 'Scripthash') {
           meRecvHashVersion = wallet.scriptHashVersion;
