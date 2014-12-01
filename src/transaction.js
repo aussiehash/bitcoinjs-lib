@@ -535,12 +535,14 @@
   var TransactionIn = Bitcoin.TransactionIn = function (data)
   {
     this.outpoint = data.outpoint;
-    if (data.script instanceof Script) {
+    this.sequence = data.sequence;
+    if (this.isCoinbase()) {
+      this.script = null;
+    } else if (data.script instanceof Script) {
       this.script = data.script;
     } else {
       this.script = new Script(data.script);
     }
-    this.sequence = data.sequence;
   };
 
   TransactionIn.prototype.isCoinbase = function ()
