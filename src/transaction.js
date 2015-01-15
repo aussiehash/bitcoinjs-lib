@@ -327,6 +327,7 @@
         allToMe = true,
         firstRecvHash = null,
         firstMeRecvHash = null,
+        firstMeRecvInternalHash = null,
         firstSendHash = null,
         recvHashVersion,
         meRecvHashVersion;
@@ -341,6 +342,9 @@
         continue;
       }
       if (wallet.hasInternalHash(hash)) {
+        if (!firstMeRecvInternalHash) {
+          firstMeRecvInternalHash = hash;
+        }
         continue;
       }
       if (wallet.hasHash(hash)) {
@@ -399,7 +403,8 @@
 
     if (impact.sign > 0 && impact.value.compareTo(BigInteger.ZERO) > 0) {
       analysis.type = 'recv';
-      analysis.addr = new Bitcoin.Address(firstMeRecvHash, meRecvHashVersion);
+      analysis.addr = new Bitcoin.Address(
+        firstMeRecvHash || firstMeRecvInternalHash, meRecvHashVersion);
     } else if (allFromMe && allToMe) {
       analysis.type = 'self';
     } else if (allFromMe) {

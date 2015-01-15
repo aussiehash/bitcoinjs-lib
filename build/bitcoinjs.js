@@ -4486,6 +4486,7 @@ Bitcoin.ECKey = (function () {
         allToMe = true,
         firstRecvHash = null,
         firstMeRecvHash = null,
+        firstMeRecvInternalHash = null,
         firstSendHash = null,
         recvHashVersion,
         meRecvHashVersion;
@@ -4496,10 +4497,13 @@ Bitcoin.ECKey = (function () {
       try {
         hash = txout.script.simpleOutPubKeyHash();
       } catch (e) {
-        console.error('Failed to compute simpleOutPubKeyHash:', e);
+        console.warn('Failed to compute simpleOutPubKeyHash:', e);
         continue;
       }
       if (wallet.hasInternalHash(hash)) {
+        if (!firstMeRecvInternalHash) {
+          firstMeRecvInternalHash = hash;
+        }
         continue;
       }
       if (wallet.hasHash(hash)) {
@@ -4527,7 +4531,7 @@ Bitcoin.ECKey = (function () {
       try {
         firstSendHash = txin.script.simpleInPubKeyHash();
       } catch (e) {
-        console.error('Failed to compute simpleInPubKeyHash:', e);
+        console.warn('Failed to compute simpleInPubKeyHash:', e);
         firstSendHash = null;
       }
       if (firstSendHash) {
@@ -4558,7 +4562,8 @@ Bitcoin.ECKey = (function () {
 
     if (impact.sign > 0 && impact.value.compareTo(BigInteger.ZERO) > 0) {
       analysis.type = 'recv';
-      analysis.addr = new Bitcoin.Address(firstMeRecvHash, meRecvHashVersion);
+      analysis.addr = new Bitcoin.Address(
+        firstMeRecvHash || firstMeRecvInternalHash, meRecvHashVersion);
     } else if (allFromMe && allToMe) {
       analysis.type = 'self';
     } else if (allFromMe) {
@@ -4643,7 +4648,7 @@ Bitcoin.ECKey = (function () {
       try {
         hash = Crypto.util.bytesToBase64(txout.script.simpleOutPubKeyHash());
       } catch (e) {
-        console.error('Failed to compute simpleOutPubKeyHash:', e);
+        console.warn('Failed to compute simpleOutPubKeyHash:', e);
         continue;
       }
       if (wallet.hasHash(hash)) {
@@ -4662,7 +4667,7 @@ Bitcoin.ECKey = (function () {
       try {
         hash = Crypto.util.bytesToBase64(txin.script.simpleInPubKeyHash());
       } catch (e) {
-        console.error('Failed to compute simpleInPubKeyHash:', e);
+        console.warn('Failed to compute simpleInPubKeyHash:', e);
         var hashes = txin.script.recoverInPubKeyHashes(this.hash);
         for (var k = 0; k < hashes.length; k++) {
           if (wallet.hasHash(hashes[k])) {
